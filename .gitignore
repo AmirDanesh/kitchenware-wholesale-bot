@@ -8,7 +8,6 @@
 **/appsettings.Local.json
 **/secrets.json
 docker-compose.override.yml
-/docs
 
 ##############################
 # .NET build output
