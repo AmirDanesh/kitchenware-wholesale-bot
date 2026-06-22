@@ -251,7 +251,7 @@ You must include the license and copyright notice.
 
 ## 👨‍💻 Author
 
-Built with ❤️ by [Your Name/Org]
+Built with ❤️ by Amir Daneshvar & Claude
 
 ---
 
