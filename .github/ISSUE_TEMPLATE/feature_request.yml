@@ -1,0 +1,103 @@
+name: ✨ Feature Request
+description: Suggest a feature or enhancement
+title: "[Feature] "
+labels: ["enhancement"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the feature suggestion! 💡
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I've checked [existing issues](../../issues) and [discussions](../../discussions) for similar requests
+          required: true
+        - label: This feature aligns with the project's B2B wholesale scope
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Feature Description
+      description: Clear, concise description of the feature
+      placeholder: "Add bulk order discount tiers..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem It Solves
+      description: What pain point or workflow issue does this address?
+      placeholder: "Currently admins cannot easily..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: scope
+    attributes:
+      label: Scope
+      description: Who does this feature affect?
+      options:
+        - "Customer-facing"
+        - "Admin dashboard"
+        - "Backend/Infrastructure"
+        - "API"
+        - "Other"
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed Solution
+      description: How would you implement this? Any architectural changes needed?
+      placeholder: |
+        1. Add new `BulkOrderDiscount` entity
+        2. Extend `OrderService` to check bulk thresholds
+        3. Update checkout UI to show bulk pricing
+    validations:
+      required: false
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Are there other approaches you considered?
+      placeholder: "Alternative 1: Use existing discount tiers..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: breaking_changes
+    attributes:
+      label: Impact Assessment
+      options:
+        - label: This is a breaking change (changes existing API/behavior)
+        - label: This affects database schema (new migration needed)
+        - label: This affects performance (significant change to data queries)
+        - label: None of the above
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Screenshots, diagrams, or any other relevant information
+      placeholder: "See attached mockup..."
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: priority
+    attributes:
+      label: Priority
+      description: How urgent is this feature?
+      options:
+        - label: 🔴 Critical (blocks other work)
+        - label: 🟡 Important (should be done soon)
+        - label: 🟢 Nice to have (can wait)

@@ -1,0 +1,115 @@
+##############################
+# Secrets & local config
+##############################
+.env
+.env.*
+**/appsettings.Development.json
+**/appsettings.Production.json
+**/appsettings.Local.json
+**/secrets.json
+docker-compose.override.yml
+/docs
+
+##############################
+# .NET build output
+##############################
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+project.lock.json
+project.fragment.lock.json
+artifacts/
+_ReSharper*/
+*.DotSettings.user
+
+##############################
+# NuGet
+##############################
+*.nupkg
+*.snupkg
+.nuget/
+packages/
+!packages/repositories.config
+
+##############################
+# EF Core
+##############################
+*.mdf
+*.ldf
+*.ndf
+
+##############################
+# Test & coverage output
+##############################
+[Tt]est[Rr]esult*/
+[Bb]uild[Ll]og.*
+*.trx
+*.coverage
+*.coveragexml
+coverage*/
+TestResults/
+
+##############################
+# Publish output
+##############################
+**/publish/
+**/PublishProfiles/
+
+##############################
+# Visual Studio
+##############################
+.vs/
+*.rsuser
+*.vsp
+*.vspx
+*.sap
+*.ilk
+*.meta
+*.aps
+*.pch
+*.pdb
+ipch/
+x64/
+x86/
+[Aa][Rr][Mm]/
+[Aa][Rr][Mm]64/
+*.pgc
+*.pgd
+*.rsp
+*.sbr
+*.tlb
+*.tli
+*.tlh
+*.ncb
+*.cache
+*.nsc
+*.bak
+*.VC.db
+*.VC.VC.opendb
+*_i.c
+*_p.c
+*_h.h
+
+##############################
+# Rider / JetBrains
+##############################
+.idea/
+*.sln.iml
+
+##############################
+# VS Code
+##############################
+.vscode/
+!.vscode/extensions.json
+!.vscode/settings.json
+
+##############################
+# OS
+##############################
+.DS_Store
+Thumbs.db
+desktop.ini
+ehthumbs.db

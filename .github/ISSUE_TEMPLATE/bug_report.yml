@@ -1,0 +1,105 @@
+name: 🐛 Bug Report
+description: Report a bug to help us improve
+title: "[Bug] "
+labels: ["bug"]
+assignees: []
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking time to report a bug! 🙏
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      options:
+        - label: I've checked [existing issues](../../issues) for duplicates
+          required: true
+        - label: I've verified the bug occurs on the latest `main` branch
+          required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the Bug
+      description: Clear description of what the bug is
+      placeholder: "The bot crashes when..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this bug?
+      placeholder: |
+        1. Start bot with command `dotnet run`
+        2. Send message to bot
+        3. Select "محصولات"
+        4. Observe error in console
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: What should happen?
+      placeholder: "Bot should display product list..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual Behavior
+      description: What actually happens?
+      placeholder: "Bot shows error: NullReferenceException..."
+    validations:
+      required: true
+
+  - type: dropdown
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - "Windows + LocalDB + Redis"
+        - "macOS + LocalDB + Redis"
+        - "Linux + SQL Server + Redis"
+        - "Docker"
+        - "Other (please specify)"
+    validations:
+      required: true
+
+  - type: input
+    id: dotnet_version
+    attributes:
+      label: .NET Version
+      placeholder: ".NET 8.0"
+    validations:
+      required: false
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs / Error Messages
+      description: Paste error messages, stack traces, or console output
+      placeholder: |
+        ```
+        System.NullReferenceException: Object reference not set to an instance of an object.
+          at KitchenwareBot.Bot.Handlers.ProductHandler.HandleAsync()
+        ```
+      render: shell
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: Additional Context
+      description: Any other relevant information?
+      placeholder: "I was testing with..."
+    validations:
+      required: false

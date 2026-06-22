@@ -1,0 +1,6 @@
+@KitchenwareBot.API_HostAddress = http://localhost:5087
+
+GET {{KitchenwareBot.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

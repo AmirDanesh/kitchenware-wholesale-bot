@@ -1,0 +1,18 @@
+<Solution>
+  <Folder Name="/src/" />
+  <Folder Name="/src/API/">
+    <Project Path="src/API/KitchenwareBot.API.csproj" />
+  </Folder>
+  <Folder Name="/src/Application/">
+    <Project Path="src/Application/KitchenwareBot.Application.csproj" />
+  </Folder>
+  <Folder Name="/src/Bot/">
+    <Project Path="src/Bot/KitchenwareBot.Bot.csproj" />
+  </Folder>
+  <Folder Name="/src/Domain/">
+    <Project Path="src/Domain/KitchenwareBot.Domain.csproj" />
+  </Folder>
+  <Folder Name="/src/Infrastructure/">
+    <Project Path="src/Infrastructure/KitchenwareBot.Infrastructure.csproj" />
+  </Folder>
+</Solution>
