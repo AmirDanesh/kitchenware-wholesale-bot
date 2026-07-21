@@ -1,275 +1,207 @@
-# KitchenwareBot 🍳
+# KitchenwareBot
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![.NET](https://img.shields.io/badge/.NET-8.0-blue)](https://dotnet.microsoft.com)
-[![Telegram Bot API](https://img.shields.io/badge/Telegram%20Bot-API%2021.x-0088cc)](https://core.telegram.org/bots/api)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![.NET](https://img.shields.io/badge/.NET-8.0-512BD4)](https://dotnet.microsoft.com/)
+[![Telegram.Bot](https://img.shields.io/badge/Telegram.Bot-22.10.2-26A5E4)](https://github.com/TelegramBots/Telegram.Bot)
 
-A production-grade **wholesale kitchenware shop bot** for Telegram with inventory management, quantity-based discounts, and REST API integration. Built with .NET 8, SQL Server, and Redis.
+Persian Telegram bot for wholesale kitchenware sales. KitchenwareBot manages the product catalog, quantity-based discounts, cart and checkout, orders, inventory, payment settings, and Telegram channel publishing.
 
-**Language:** Persian (Farsi) · **Currency:** Iranian Toman (IRT) · **Target:** B2B wholesale retailers and resellers
+- **Audience:** retailers, resellers, and bulk buyers
+- **Language:** Persian for all bot-facing text
+- **Currency:** Iranian Toman with Persian digits
+- **Runtime:** polling during local development, webhook in production
+- **Website integration:** REST API project is scaffolded for a future phase
 
----
+## Features
 
-## ✨ Features
+### Customer
 
-### 👥 Customer Experience
-- 🔍 **Browse catalog** by categories with pagination
-- 🛒 **Smart cart** with real-time discount calculation
-- 💰 **Quantity discounts** — automatic wholesale pricing tiers
-- 📋 **Checkout flow** — delivery & payment method selection
-- 📱 **Order tracking** — status updates via Telegram
-- 🔗 **Deep linking** — direct product/cart links via Telegram
+- Browse categories and paginated product lists
+- View product details, stock, and discount tiers
+- Add fixed or custom quantities to a Redis-backed cart
+- Choose shipping or in-person delivery
+- Choose any payment method currently enabled by an administrator
+- Place orders with atomic stock reservation and locked price snapshots
+- Track paginated order history and status changes
+- Open product and purchase deep links from Telegram channel posts
 
-### 🛡️ Admin Dashboard
-- ➕ **Product management** — CRUD with image uploads
-- 📊 **Inventory tracking** — multi-warehouse stock management
-- 📈 **Discount tiers** — global + per-product quantity breaks
-- 💳 **Payment settings** — bank transfer & cash configuration
-- 📢 **Channel publishing** — auto-post products to Telegram channel
-- 📧 **Order notifications** — instant admin alerts for new orders
+### Administrator
 
-### 🏗️ Technical
-- ⚡ **Webhook mode** — instant Telegram updates (production)
-- 🗄️ **SQL Server** — robust data persistence
-- 🔴 **Redis FSM** — efficient conversation state management
-- 🌐 **REST API** — ready for website integration (Phase 10)
-- 🐳 **Docker ready** — containerized deployment
+- Manage products, categories, images, and active status
+- Publish products to a Telegram channel
+- Review and update orders with customer notifications
+- View stock reports, low-stock items, and adjust warehouse inventory
+- Manage global and product-specific quantity discounts
+- Configure bank transfer, cash payment, bank details, and channel ID
+- Grant access through configured Telegram IDs or database roles
 
----
+### Platform
 
-## 🚀 Quick Start
+- SQL Server with EF Core 8 code-first migrations
+- Redis conversation state with a configurable 30-minute default TTL
+- Plain application services through dependency injection; no MediatR
+- Automatic polling/webhook mode selection
+- Optional webhook secret-token validation
+- Docker Compose stack with bot, SQL Server 2022, and Redis 7.4
+- Health endpoint at `/health`
 
-### Prerequisites
-- **.NET 8 SDK**
-- **SQL Server** (LocalDB for dev, Express for prod)
-- **Redis** (local or Docker)
-- **Telegram Bot Token** (from [@BotFather](https://t.me/botfather))
+## Architecture
 
-### Local Development
-
-```bash
-# 1. Clone and navigate
-git clone https://github.com/yourusername/kitchenware-wholesale-bot.git
-cd kitchenware-wholesale-bot
-
-# 2. Start Redis
-docker run -d -p 6379:6379 redis:alpine
-
-# 3. Configure secrets (Development only)
-# Edit src/Bot/appsettings.Development.json:
-{
-  "Telegram": {
-    "BotToken": "your_bot_token_here",
-    "BotUsername": "your_bot_username",
-    "AdminIds": [123456789],
-    "ChannelId": -1001234567890
-  }
-}
-
-# 4. Initialize database (LocalDB auto-starts)
-dotnet ef database update \
-  --project src/KitchenwareBot.Infrastructure \
-  --startup-project src/KitchenwareBot.Bot
-
-# 5. Run bot in polling mode
-dotnet run --project src/KitchenwareBot.Bot
-```
-
-### Docker Deployment
-
-```bash
-docker-compose up -d
-```
-
-See [Docker Deployment Guide](./docs/DEPLOYMENT.md) for production setup.
-
----
-
-## 📁 Project Structure
-
-```
+```text
 src/
-├── KitchenwareBot.Domain/        # Entities, enums, interfaces (0 dependencies)
-├── KitchenwareBot.Application/   # Business logic & services (Domain only)
-├── KitchenwareBot.Infrastructure # EF Core, SQL Server, Redis, repositories
-├── KitchenwareBot.Bot/           # Telegram handlers, FSM router, keyboards
-└── KitchenwareBot.API/           # REST API (scaffold for Phase 10)
-
-docs/
-├── ARCHITECTURE.md               # Tech decisions & patterns
-├── BUSINESS_RULES.md             # Requirements & workflows
-└── TASKS.md                       # Implementation roadmap (70 tasks)
+├── Domain/          Entities, enums, exceptions, repository contracts
+├── Application/     Business services, DTOs, validation, messages, sessions
+├── Infrastructure/  EF Core, SQL Server repositories, Redis state
+├── Bot/             Telegram routing, handlers, keyboards, hosting
+└── API/             Future website REST API scaffold
 ```
 
-**Dependency flow (strict one-way):**
-```
-Bot ──► Application ◄── API
-Infrastructure ──► Application
-Domain ◄── all projects
-```
+Dependencies point inward:
 
----
-
-## 💻 Tech Stack
-
-| Layer | Technology |
-|-------|-----------|
-| **Runtime** | .NET 8, C# |
-| **Bot Framework** | Telegram.Bot 21.x (Webhook + Polling) |
-| **Database** | SQL Server with EF Core 8 |
-| **State Management** | Redis (JSON-serialized FSM) |
-| **Validation** | FluentValidation |
-| **Architecture** | Clean Architecture, Service Layer pattern |
-| **Containerization** | Docker + docker-compose |
-
----
-
-## 📚 Documentation
-
-- **[Architecture Decisions](./docs/ARCHITECTURE.md)** — Why these choices? Clean architecture patterns, Redis FSM design
-- **[Business Rules](./docs/BUSINESS_RULES.md)** — Complete business logic, workflows, order/discount/inventory rules
-- **[Implementation Roadmap](./docs/TASKS.md)** — 70 tasks across 10 phases; track progress with checkboxes
-- **[Deployment Guide](./docs/DEPLOYMENT.md)** — Docker, Nginx, SSL, webhook registration (coming soon)
-
----
-
-## 🎯 Key Patterns
-
-### Quantity Discount Resolution
-```csharp
-if product.DiscountTiers.Any() → use product-specific tiers
-else → use global tiers
-→ find tier where MinQty ≤ qty ≤ MaxQty
-→ return DiscountPercent (0 if no match)
+```text
+Domain
+  └── Application
+        ├── Infrastructure
+        ├── Bot
+        └── API
 ```
 
-### Bot FSM State Management
-```
-UserSession stored in Redis
-  ├─ Key: bot:session:{telegramId}
-  ├─ TTL: 30 minutes
-  └─ State enum + Cart + Drafts
-```
+Business rules stay in `Application`. `Bot` and `API` remain thin entry points. See [Architecture Decisions](docs/ARCHITECTURE.md) for constraints and design rationale.
 
-### Inventory Lifecycle
-```
-Place order  → Reserve(qty)
-Confirm      → Consume(qty) [Reserve + actual deduction]
-Cancel       → Release(qty) [Restore available]
-```
+## Requirements
 
----
+- [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
+- SQL Server LocalDB for local development, or another SQL Server instance
+- Redis locally or through Docker
+- Telegram bot token from [@BotFather](https://t.me/BotFather)
+- Docker Desktop or Docker Engine with Compose for container deployment
 
-## 🔒 Security & Secrets
+## Local Development
 
-### Never Commit
-- `appsettings.Development.json` — contains `BotToken`, `AdminIds`
-- `appsettings.Production.json` — production database connection string
-- `.env` files — any local configuration
+### 1. Clone
 
-See [.gitignore](./.gitignore) for excluded patterns.
-
-### Production Checklist
-- ✅ Use environment variables or Azure Key Vault for secrets
-- ✅ Enable HTTPS on webhook endpoint
-- ✅ Validate Telegram update signatures
-- ✅ Set up database backups
-- ✅ Monitor Redis memory usage
-- ✅ Enable SQL Server encryption
-
----
-
-## 🛠️ Development Workflow
-
-### Adding a Feature
-1. Create a branch: `git checkout -b feature/my-feature`
-2. Follow [CONTRIBUTING.md](./CONTRIBUTING.md)
-3. Submit a Pull Request with:
-   - Concise description of changes
-   - Link to related issue (if any)
-   - Test evidence (screenshots for UI, test output for logic)
-
-### Running Tests
-```bash
-# Unit tests (when added)
-dotnet test
+```powershell
+git clone https://github.com/AmirDanesh/kitchenware-wholesale-bot.git
+cd kitchenware-wholesale-bot
 ```
 
-### Database Migrations
-```bash
-# Create a migration
-dotnet ef migrations add DescriptiveName \
-  --project src/KitchenwareBot.Infrastructure \
-  --startup-project src/KitchenwareBot.Bot
+### 2. Start Redis
 
-# Apply locally
-dotnet ef database update \
-  --project src/KitchenwareBot.Infrastructure \
-  --startup-project src/KitchenwareBot.Bot
+```powershell
+docker run --detach --name kitchenware-redis --publish 6379:6379 redis:7.4-alpine
 ```
 
----
+### 3. Configure development secrets
 
-## 📈 Implementation Status
+The Bot project has a .NET user-secrets ID. Store local credentials outside tracked configuration:
 
-**Phase Progress:** See [TASKS.md](./docs/TASKS.md) for detailed checklist.
+```powershell
+dotnet user-secrets set "Telegram:BotToken" "YOUR_BOT_TOKEN" --project src/Bot
+dotnet user-secrets set "Telegram:BotUsername" "YOUR_BOT_USERNAME" --project src/Bot
+dotnet user-secrets set "Telegram:AdminIds:0" "YOUR_TELEGRAM_ID" --project src/Bot
+```
 
-- ✅ Phase 1 — Solution scaffold
-- ✅ Phase 2 — Domain layer
-- ✅ Phase 3 — Infrastructure (in progress)
-- ⏳ Phase 4 — Application services
-- ⏳ Phase 5 — Bot core FSM
-- ⏳ Phase 6–7 — Customer & Admin handlers
-- ⏳ Phase 8–9 — Testing & deployment
-- 📅 Phase 10 — REST API for website
+Default local configuration uses SQL Server LocalDB and `localhost:6379`. Override `ConnectionStrings:Default` or `Redis:Connection` through user secrets when needed.
 
----
+### 4. Apply database migrations
 
-## 🤝 Contributing
+```powershell
+dotnet ef database update --project src/Infrastructure --startup-project src/Bot
+```
 
-Contributions welcome! Please read [CONTRIBUTING.md](./CONTRIBUTING.md) first.
+The Bot also applies pending EF Core migrations during startup.
 
-**To report a bug or suggest a feature:**
-1. Check [Issues](../../issues) to avoid duplicates
-2. Create a new issue with the appropriate template
-3. Provide clear description + reproduction steps
+### 5. Run
 
----
+```powershell
+dotnet run --project src/Bot
+```
 
-## 📄 License
+Leave `Telegram:WebhookUrl` empty for polling mode. With a valid URL configured, the hosted service registers a webhook and receives updates at `POST /telegram/webhook`.
 
-This project is licensed under the **MIT License** — see [LICENSE](./LICENSE) file for details.
+## Docker Deployment
 
-You are free to:
-- ✅ Use in commercial projects
-- ✅ Modify and distribute
-- ✅ Use privately
+Create production configuration from the provided template, fill every required secret, then start the stack:
 
-You must include the license and copyright notice.
+```powershell
+Copy-Item .env.example .env
+docker compose up --detach --build
+docker compose ps
+docker compose logs --follow bot
+```
 
----
+The Compose stack exposes the bot on port `8080` by default and keeps SQL Server and Redis on an internal network. Set `BOT_HTTP_PORT` to change the host port.
 
-## 👨‍💻 Author
+Production webhook configuration requires:
 
-Built with ❤️ by Amir Daneshvar & Claude
+- Public HTTPS URL ending in `/telegram/webhook`
+- `Telegram__WebhookUrl` set to that URL
+- Optional matching `Telegram__WebhookSecretToken`
+- Reverse proxy and TLS configuration
 
----
+See [Deployment Guide](docs/DEPLOYMENT.md) for full server setup.
 
-## 🙏 Acknowledgments
+## Common Commands
 
-- [Telegram.Bot](https://github.com/TelegramBots/Telegram.Bot) — Official Telegram Bot API wrapper
-- [Entity Framework Core](https://github.com/dotnet/efcore) — Data access
-- [StackExchange.Redis](https://github.com/StackExchange/StackExchange.Redis) — Redis client
+```powershell
+# Build solution
+dotnet build KitchenwareBot.sln
 
----
+# Run tests when test projects are added
+dotnet test KitchenwareBot.sln
 
-## 📞 Support
+# Add migration
+dotnet ef migrations add MigrationName --project src/Infrastructure --startup-project src/Bot
 
-- 📖 **[Full Documentation](./docs/)**
-- 🐛 **[Report Issues](../../issues)**
-- 💬 **[Discussions](../../discussions)**
-- 📧 **Email:** amir77daneshvar@gmail.com
+# Apply migration
+dotnet ef database update --project src/Infrastructure --startup-project src/Bot
 
----
+# Check container health
+Invoke-WebRequest http://localhost:8080/health
+```
 
-**Made in 🇮🇷 Iran** | *Wholesale at scale. Toman proud.*
+## Discount and Inventory Rules
+
+Product discount tiers completely replace global tiers for that product. If no product tiers exist, global tiers apply. The first active tier containing the requested quantity supplies the discount; otherwise the discount is zero.
+
+```text
+Order placed:    reserve stock
+Order confirmed: consume reservation and physical stock
+Order cancelled: release or restock inventory, depending on order status
+```
+
+Order items store original price, discount percentage, final unit price, and product name snapshots. Later product changes never alter existing orders.
+
+## Configuration
+
+| Key | Purpose |
+|---|---|
+| `ConnectionStrings:Default` | SQL Server connection string |
+| `Redis:Connection` | Redis endpoint |
+| `Redis:SessionTtlMinutes` | Conversation-state lifetime |
+| `Telegram:BotToken` | Telegram bot credential |
+| `Telegram:WebhookUrl` | Enables webhook mode when non-empty |
+| `Telegram:WebhookSecretToken` | Protects webhook deliveries |
+| `Telegram:BotUsername` | Builds channel deep links |
+| `Telegram:ChannelId` | Target channel for product publishing |
+| `Telegram:AdminIds` | Telegram IDs with administrator access |
+
+Never commit `.env`, bot tokens, database passwords, or production settings. See [Security Policy](SECURITY.md).
+
+## Project Status
+
+Current codebase includes domain models, EF Core persistence and initial migration, repositories, Redis FSM, application services, Telegram customer/admin flows, polling/webhook hosting, and Docker assets. Remaining roadmap work centers on testing and hardening, production deployment automation, and the website REST API.
+
+Detailed requirements and roadmap:
+
+- [Business Rules](docs/BUSINESS_RULES.md)
+- [Architecture Decisions](docs/ARCHITECTURE.md)
+- [Implementation Tasks](docs/TASKS.md)
+- [Deployment Guide](docs/DEPLOYMENT.md)
+- [Contributing](CONTRIBUTING.md)
+
+## License
+
+Licensed under the [MIT License](LICENSE).
+
+Built by Amir Daneshvar & Claude.
