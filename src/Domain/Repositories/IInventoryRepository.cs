@@ -13,7 +13,7 @@ public interface IInventoryRepository
 
     // Reservation lifecycle. These mutate tracked entities; the caller commits via IUnitOfWork
     // (so a whole order can be reserved atomically). ReserveAsync throws InsufficientStockException.
-    Task ReserveAsync(Guid productId, int qty, CancellationToken ct = default);
+    Task<IReadOnlyList<InventoryItem>> ReserveAsync(Guid productId, int qty, CancellationToken ct = default);
     Task ReleaseAsync(Guid productId, int qty, CancellationToken ct = default);
     Task ConsumeAsync(Guid productId, int qty, CancellationToken ct = default);
 

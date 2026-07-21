@@ -25,6 +25,8 @@ public class RedisBotStateService : IBotStateService
     }
 
     private static string Key(long telegramId) => $"bot:session:{telegramId}";
+    private static string CheckoutKey(long telegramId, Guid checkoutToken)
+        => $"bot:checkout:{telegramId}:{checkoutToken:N}";
 
     public async Task<UserSession> GetOrCreateAsync(long telegramId, CancellationToken ct = default)
     {
@@ -65,5 +67,25 @@ public class RedisBotStateService : IBotStateService
     {
         var db = _redis.GetDatabase();
         await db.KeyDeleteAsync(Key(telegramId));
+    }
+
+    public async Task<bool> TryBeginCheckoutAsync(long telegramId, Guid checkoutToken, CancellationToken ct = default)
+    {
+        if (checkoutToken == Guid.Empty) return false;
+
+        var db = _redis.GetDatabase();
+        return await db.StringSetAsync(
+            CheckoutKey(telegramId, checkoutToken),
+            "processing",
+            _ttl,
+            When.NotExists);
+    }
+
+    public async Task ReleaseCheckoutAsync(long telegramId, Guid checkoutToken, CancellationToken ct = default)
+    {
+        if (checkoutToken == Guid.Empty) return;
+
+        var db = _redis.GetDatabase();
+        await db.KeyDeleteAsync(CheckoutKey(telegramId, checkoutToken));
     }
 }

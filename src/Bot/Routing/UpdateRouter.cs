@@ -95,7 +95,8 @@ public class UpdateRouter
         if (ctx.IsCallback && !ctx.CallbackAnswered && callback is not null)
             await _responder.AnswerAsync(callback.Id, ct: ct);
 
-        await _state.SetAsync(session, ct);
+        if (ctx.PersistSession)
+            await _state.SetAsync(session, ct);
     }
 
     // ── Messages (text / photo) ───────────────────────────────────

@@ -22,6 +22,7 @@ public class BotUpdateContext
 
     public bool IsCallback => Callback is not null;
     public bool CallbackAnswered { get; set; }
+    public bool PersistSession { get; set; } = true;
 
     public string Arg(int index) => index < Args.Length ? Args[index] : string.Empty;
 }

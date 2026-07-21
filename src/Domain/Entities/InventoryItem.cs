@@ -60,7 +60,9 @@ public class InventoryItem : BaseEntity
     public void Release(int qty)
     {
         RequirePositive(qty);
-        ReservedQuantity = Math.Max(0, ReservedQuantity - qty);
+        if (qty > ReservedQuantity)
+            throw new InvalidOperationException("Cannot release more than the reserved quantity.");
+        ReservedQuantity -= qty;
     }
 
     /// <summary>Consume stock for a confirmed order: reduces both physical and reserved quantity.</summary>
@@ -69,8 +71,10 @@ public class InventoryItem : BaseEntity
         RequirePositive(qty);
         if (qty > Quantity)
             throw new InvalidOperationException("Cannot consume more than the physical quantity.");
+        if (qty > ReservedQuantity)
+            throw new InvalidOperationException("Cannot consume more than the reserved quantity.");
         Quantity -= qty;
-        ReservedQuantity = Math.Max(0, ReservedQuantity - qty);
+        ReservedQuantity -= qty;
     }
 
     public void SetLowStockThreshold(int threshold) => LowStockThreshold = Math.Max(0, threshold);

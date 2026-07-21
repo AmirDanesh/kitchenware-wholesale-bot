@@ -40,9 +40,9 @@ public class InventoryRepository : IInventoryRepository
             .OrderBy(i => i.Product!.Name)
             .ToListAsync(ct);
 
-    public async Task ReserveAsync(Guid productId, int qty, CancellationToken ct = default)
+    public async Task<IReadOnlyList<InventoryItem>> ReserveAsync(Guid productId, int qty, CancellationToken ct = default)
     {
-        var items = await LoadTrackedForProduct(productId, ct);
+        var items = await LoadTrackedForProductWithUpdateLockAsync(productId, ct);
         var totalAvailable = items.Sum(i => i.AvailableQuantity);
         if (totalAvailable < qty)
         {
@@ -51,19 +51,25 @@ public class InventoryRepository : IInventoryRepository
         }
 
         var remaining = qty;
+        var newlyLowStock = new List<InventoryItem>();
         foreach (var item in items.OrderByDescending(i => i.AvailableQuantity))
         {
             if (remaining <= 0) break;
             var take = Math.Min(item.AvailableQuantity, remaining);
             if (take <= 0) continue;
+            var wasLowStock = item.IsLowStock;
             item.Reserve(take);
+            if (!wasLowStock && item.IsLowStock)
+                newlyLowStock.Add(item);
             remaining -= take;
         }
+
+        return newlyLowStock;
     }
 
     public async Task ReleaseAsync(Guid productId, int qty, CancellationToken ct = default)
     {
-        var items = await LoadTrackedForProduct(productId, ct);
+        var items = await LoadTrackedForProductWithUpdateLockAsync(productId, ct);
         var remaining = qty;
         foreach (var item in items.OrderByDescending(i => i.ReservedQuantity))
         {
@@ -73,29 +79,41 @@ public class InventoryRepository : IInventoryRepository
             item.Release(take);
             remaining -= take;
         }
+
+        if (remaining > 0)
+            throw new InvalidOperationException("Cannot release more stock than is reserved.");
     }
 
     public async Task ConsumeAsync(Guid productId, int qty, CancellationToken ct = default)
     {
-        var items = await LoadTrackedForProduct(productId, ct);
+        var items = await LoadTrackedForProductWithUpdateLockAsync(productId, ct);
         var remaining = qty;
         // Consume from the rows that hold the reservations first.
         foreach (var item in items.OrderByDescending(i => i.ReservedQuantity).ThenByDescending(i => i.Quantity))
         {
             if (remaining <= 0) break;
-            var take = Math.Min(item.Quantity, remaining);
+            var take = Math.Min(item.ReservedQuantity, remaining);
             if (take <= 0) continue;
             item.Consume(take);
             remaining -= take;
         }
+
+        if (remaining > 0)
+            throw new InvalidOperationException("Cannot consume more stock than is reserved.");
     }
 
     public async Task AddAsync(InventoryItem item, CancellationToken ct = default)
         => await _db.InventoryItems.AddAsync(item, ct);
 
-    private async Task<List<InventoryItem>> LoadTrackedForProduct(Guid productId, CancellationToken ct)
-        => await _db.InventoryItems
+    private async Task<List<InventoryItem>> LoadTrackedForProductWithUpdateLockAsync(Guid productId, CancellationToken ct)
+    {
+        if (_db.Database.CurrentTransaction is null)
+            throw new InvalidOperationException("Inventory mutations require an explicit database transaction.");
+
+        return await _db.InventoryItems
+            .FromSqlInterpolated($"SELECT * FROM [InventoryItems] WITH (UPDLOCK, HOLDLOCK) WHERE [ProductId] = {productId}")
             .Include(i => i.Product)
-            .Where(i => i.ProductId == productId)
+            .Include(i => i.Warehouse)
             .ToListAsync(ct);
+    }
 }

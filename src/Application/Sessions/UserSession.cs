@@ -65,6 +65,7 @@ public class CartItem
 
 public class OrderDraft
 {
+    public Guid CheckoutToken { get; set; }
     public PaymentMethod? Payment { get; set; }
     public DeliveryType? Delivery { get; set; }
     public string? Address { get; set; }

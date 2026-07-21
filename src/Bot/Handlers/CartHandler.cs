@@ -6,6 +6,7 @@ using KitchenwareBot.Application.Services;
 using KitchenwareBot.Application.Sessions;
 using KitchenwareBot.Bot.Common;
 using KitchenwareBot.Bot.Keyboards;
+using KitchenwareBot.Domain.Exceptions;
 
 namespace KitchenwareBot.Bot.Handlers;
 
@@ -102,7 +103,17 @@ public class CartHandler : HandlerBase
             return;
         }
 
-        var calc = await _orders.CalculateOrderAsync(ctx.Session.Cart, ct);
+        OrderCalculationDto calc;
+        try
+        {
+            calc = await _orders.CalculateOrderAsync(ctx.Session.Cart, ct);
+        }
+        catch (ProductUnavailableException ex)
+        {
+            await Show(ctx, string.Format(BotMessages.ProductUnavailable, ex.ProductName),
+                CustomerKeyboards.Cart(ctx.Session.Cart), ct);
+            return;
+        }
         await Show(ctx, BuildCartText(calc), CustomerKeyboards.Cart(ctx.Session.Cart), ct);
     }
 

@@ -69,6 +69,7 @@ API             → Application + Infrastructure
 
 ```
 bot:session:{telegramId}        ← UserSession FSM state, TTL 30min
+bot:checkout:{telegramId}:{token} ← Atomic checkout claim, session TTL
 ```
 Add new keys here when introducing new Redis usage.
 

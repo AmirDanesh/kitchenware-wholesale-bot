@@ -15,11 +15,14 @@ public class CheckoutHandler : HandlerBase
 {
     private readonly IOrderService _orders;
     private readonly IPaymentSettingsService _payments;
+    private readonly IBotStateService _state;
 
-    public CheckoutHandler(BotResponder bot, IOrderService orders, IPaymentSettingsService payments) : base(bot)
+    public CheckoutHandler(BotResponder bot, IOrderService orders, IPaymentSettingsService payments,
+        IBotStateService state) : base(bot)
     {
         _orders = orders;
         _payments = payments;
+        _state = state;
     }
 
     public async Task StartAsync(BotUpdateContext ctx, CancellationToken ct)
@@ -37,7 +40,7 @@ public class CheckoutHandler : HandlerBase
             return;
         }
 
-        ctx.Session.OrderDraft = new OrderDraft();
+        ctx.Session.OrderDraft = CreateDraft();
         ctx.Session.State = BotState.CheckoutAskDelivery;
         await Answer(ctx, ct: ct);
         await Show(ctx, BotMessages.AskDelivery, CustomerKeyboards.Delivery(), ct);
@@ -45,8 +48,8 @@ public class CheckoutHandler : HandlerBase
 
     public async Task SetDeliveryAsync(BotUpdateContext ctx, DeliveryType delivery, CancellationToken ct)
     {
-        ctx.Session.OrderDraft ??= new OrderDraft();
-        ctx.Session.OrderDraft.Delivery = delivery;
+        var draft = GetOrCreateDraft(ctx.Session);
+        draft.Delivery = delivery;
         await Answer(ctx, ct: ct);
 
         if (delivery == DeliveryType.Shipping)
@@ -67,8 +70,8 @@ public class CheckoutHandler : HandlerBase
             await Send(ctx, BotMessages.AskAddress, ct: ct);
             return;
         }
-        ctx.Session.OrderDraft ??= new OrderDraft();
-        ctx.Session.OrderDraft.Address = ctx.Text.Trim();
+        var draft = GetOrCreateDraft(ctx.Session);
+        draft.Address = ctx.Text.Trim();
         await AskPaymentAsync(ctx, ct);
     }
 
@@ -82,8 +85,8 @@ public class CheckoutHandler : HandlerBase
 
     public async Task SetPaymentAsync(BotUpdateContext ctx, PaymentMethod method, CancellationToken ct)
     {
-        ctx.Session.OrderDraft ??= new OrderDraft();
-        ctx.Session.OrderDraft.Payment = method;
+        var draft = GetOrCreateDraft(ctx.Session);
+        draft.Payment = method;
         ctx.Session.State = BotState.CheckoutConfirm;
         await Answer(ctx, ct: ct);
         await ShowConfirmAsync(ctx, ct);
@@ -91,7 +94,27 @@ public class CheckoutHandler : HandlerBase
 
     private async Task ShowConfirmAsync(BotUpdateContext ctx, CancellationToken ct)
     {
-        var calc = await _orders.CalculateOrderAsync(ctx.Session.Cart, ct);
+        OrderCalculationDto calc;
+        try
+        {
+            calc = await _orders.CalculateOrderAsync(ctx.Session.Cart, ct);
+        }
+        catch (ProductUnavailableException ex)
+        {
+            ctx.Session.State = BotState.Cart;
+            await Show(ctx, string.Format(BotMessages.ProductUnavailable, ex.ProductName),
+                CustomerKeyboards.Cart(ctx.Session.Cart), ct);
+            return;
+        }
+
+        // Keep the session cart aligned with the exact current prices shown to the customer.
+        foreach (var line in calc.Lines)
+        {
+            var cartItem = ctx.Session.Cart.First(i => i.ProductId == line.ProductId);
+            cartItem.Name = line.ProductName;
+            cartItem.UnitPrice = line.OriginalUnitPrice;
+        }
+
         var draft = ctx.Session.OrderDraft!;
 
         var sb = new StringBuilder();
@@ -114,9 +137,18 @@ public class CheckoutHandler : HandlerBase
     public async Task ConfirmAsync(BotUpdateContext ctx, CancellationToken ct)
     {
         var draft = ctx.Session.OrderDraft;
-        if (draft is null || ctx.Session.Cart.Count == 0)
+        if (draft is null || draft.CheckoutToken == Guid.Empty || ctx.Session.Cart.Count == 0)
         {
-            await Answer(ctx, BotMessages.GenericError, alert: true, ct: ct);
+            ctx.Session.State = BotState.Cart;
+            await Answer(ctx, BotMessages.CheckoutExpired, alert: true, ct: ct);
+            return;
+        }
+
+        if (!await _state.TryBeginCheckoutAsync(ctx.TelegramId, draft.CheckoutToken, ct))
+        {
+            // Another request owns this checkout. Never let its stale session overwrite the winner.
+            ctx.PersistSession = false;
+            await Answer(ctx, BotMessages.CheckoutAlreadyProcessing, alert: true, ct: ct);
             return;
         }
 
@@ -138,13 +170,26 @@ public class CheckoutHandler : HandlerBase
         }
         catch (InsufficientStockException ex)
         {
+            await _state.ReleaseCheckoutAsync(ctx.TelegramId, draft.CheckoutToken, ct);
             ctx.Session.State = BotState.Cart;
             await Send(ctx, $"{BotMessages.OutOfStock}\n🍳 {ex.ProductName}", CustomerKeyboards.MainMenu(), ct);
         }
+        catch (ProductUnavailableException ex)
+        {
+            await _state.ReleaseCheckoutAsync(ctx.TelegramId, draft.CheckoutToken, ct);
+            ctx.Session.State = BotState.Cart;
+            await Send(ctx, string.Format(BotMessages.ProductUnavailable, ex.ProductName), CustomerKeyboards.MainMenu(), ct);
+        }
         catch (ShopClosedException)
         {
+            await _state.ReleaseCheckoutAsync(ctx.TelegramId, draft.CheckoutToken, ct);
             ctx.Session.ResetToIdle();
             await Send(ctx, BotMessages.ShopClosed, CustomerKeyboards.MainMenu(), ct);
+        }
+        catch
+        {
+            await _state.ReleaseCheckoutAsync(ctx.TelegramId, draft.CheckoutToken, ct);
+            throw;
         }
     }
 
@@ -167,5 +212,15 @@ public class CheckoutHandler : HandlerBase
         sb.AppendLine($"مبلغ: {PriceFormatter.FormatToman(result.Total)}");
         if (!string.IsNullOrWhiteSpace(b.Note)) sb.AppendLine(b.Note);
         return sb.ToString().TrimEnd();
+    }
+
+    private static OrderDraft CreateDraft() => new() { CheckoutToken = Guid.NewGuid() };
+
+    private static OrderDraft GetOrCreateDraft(UserSession session)
+    {
+        session.OrderDraft ??= CreateDraft();
+        if (session.OrderDraft.CheckoutToken == Guid.Empty)
+            session.OrderDraft.CheckoutToken = Guid.NewGuid();
+        return session.OrderDraft;
     }
 }

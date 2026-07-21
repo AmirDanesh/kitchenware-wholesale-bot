@@ -68,6 +68,9 @@ public static class BotMessages
     public const string AskAddress = "لطفاً آدرس کامل پستی خود را ارسال کنید:";
     public const string AskPayment = "روش پرداخت را انتخاب کنید:";
     public const string ConfirmOrderPrompt = "سفارش خود را بررسی و تأیید کنید:";
+    public const string CheckoutExpired = "⏱ اطلاعات تسویه‌حساب منقضی شده است. لطفاً دوباره از سبد خرید شروع کنید.";
+    public const string CheckoutAlreadyProcessing = "⏳ سفارش شما در حال ثبت است. لطفاً منتظر بمانید.";
+    public const string ProductUnavailable = "❌ یکی از محصولات سبد خرید دیگر قابل سفارش نیست.\n🍳 {0}";
     public const string OrderPlaced = "✅ سفارش شما با کد {0} ثبت شد.\nپس از بررسی توسط فروشنده، وضعیت سفارش به شما اطلاع داده می‌شود.";
     public const string BankInstructionsHeader = "💳 اطلاعات واریز:";
     public const string BtnDeliveryShipping = "🚚 ارسال پستی";

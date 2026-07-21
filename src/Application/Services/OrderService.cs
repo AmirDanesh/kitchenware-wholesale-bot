@@ -45,12 +45,16 @@ public class OrderService : IOrderService
         var lines = new List<OrderLineDto>(cart.Count);
         foreach (var item in cart)
         {
+            var product = await _products.GetByIdAsync(item.ProductId, ct);
+            if (product is null || !product.IsActive)
+                throw new ProductUnavailableException(item.ProductId, product?.Name ?? item.Name);
+
             var percent = await _discounts.ResolveDiscountAsync(item.ProductId, item.Quantity, ct);
-            var finalUnit = Math.Round(item.UnitPrice * (1 - percent / 100m), 2, MidpointRounding.AwayFromZero);
+            var finalUnit = Math.Round(product.Price * (1 - percent / 100m), 2, MidpointRounding.AwayFromZero);
             var lineTotal = finalUnit * item.Quantity;
-            var saved = (item.UnitPrice - finalUnit) * item.Quantity;
-            lines.Add(new OrderLineDto(item.ProductId, item.Name, item.Quantity,
-                item.UnitPrice, percent, finalUnit, lineTotal, saved));
+            var saved = (product.Price - finalUnit) * item.Quantity;
+            lines.Add(new OrderLineDto(item.ProductId, product.Name, item.Quantity,
+                product.Price, percent, finalUnit, lineTotal, saved));
         }
 
         return new OrderCalculationDto(
@@ -79,30 +83,30 @@ public class OrderService : IOrderService
         if (delivery == DeliveryType.Shipping && string.IsNullOrWhiteSpace(address))
             throw new InvalidOperationException("Shipping address is required.");
 
-        // Fail fast on stock (gives the customer the exact product that ran out).
-        foreach (var item in cart)
-        {
-            var available = await _inventory.GetAvailableStockAsync(item.ProductId, ct);
-            if (available < item.Quantity)
-            {
-                var p = await _products.GetByIdAsync(item.ProductId, ct);
-                throw new InsufficientStockException(item.ProductId, p?.Name ?? item.Name, item.Quantity, available);
-            }
-        }
-
         Order order = null!;
+        var lowStockItems = new List<LowStockItemDto>();
         await _uow.ExecuteInTransactionAsync(async innerCt =>
         {
+            lowStockItems.Clear();
             order = Order.Create(customerTelegramId, customerName, customerPhone, payment, delivery, address);
 
-            foreach (var item in cart)
+            // Deterministic lock order prevents two multi-product checkouts from deadlocking.
+            foreach (var item in cart.OrderBy(i => i.ProductId))
             {
-                var product = await _products.GetByIdAsync(item.ProductId, innerCt)
-                              ?? throw new EntityNotFoundException(nameof(Product), item.ProductId);
+                var product = await _products.GetByIdAsync(item.ProductId, innerCt);
+                if (product is null || !product.IsActive)
+                    throw new ProductUnavailableException(item.ProductId, product?.Name ?? item.Name);
+
                 var percent = await _discounts.ResolveDiscountAsync(product.Id, item.Quantity, innerCt);
                 // Snapshots taken from the CURRENT product price (prices lock at order time).
                 order.AddItem(product.Id, product.Name, product.Price, percent, item.Quantity);
-                await _inventory.ReserveAsync(product.Id, item.Quantity, innerCt); // throws InsufficientStock
+                var newlyLowStock = await _inventory.ReserveAsync(product.Id, item.Quantity, innerCt);
+                lowStockItems.AddRange(newlyLowStock.Select(stock => new LowStockItemDto(
+                    stock.ProductId,
+                    stock.Product?.Name ?? product.Name,
+                    stock.Warehouse?.Name ?? string.Empty,
+                    stock.AvailableQuantity,
+                    stock.LowStockThreshold)));
             }
 
             order.RecalculateTotal();
@@ -111,6 +115,8 @@ public class OrderService : IOrderService
 
         // Notify admins after the transaction commits (never call Telegram inside a DB tx).
         await _notifier.NotifyAdminsNewOrderAsync(order, ct);
+        foreach (var item in lowStockItems)
+            await _notifier.NotifyAdminsLowStockAsync(item, ct);
 
         BankDetailsDto? bank = payment == PaymentMethod.BankTransfer
             ? new BankDetailsDto(settings.BankName, settings.BankAccountNumber, settings.BankAccountName, settings.BankNote)
