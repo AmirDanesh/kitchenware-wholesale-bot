@@ -4,34 +4,30 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace KitchenwareBot.Infrastructure.Persistence.Configurations;
 
-internal sealed class InventoryItemConfiguration : IEntityTypeConfiguration<InventoryItem>
+public class InventoryItemConfiguration : IEntityTypeConfiguration<InventoryItem>
 {
-    public void Configure(EntityTypeBuilder<InventoryItem> builder)
+    public void Configure(EntityTypeBuilder<InventoryItem> b)
     {
-        builder.HasKey(i => i.Id);
-        builder.Property(i => i.Quantity).HasDefaultValue(0);
-        builder.Property(i => i.ReservedQuantity).HasDefaultValue(0);
-        builder.Property(i => i.LowStockThreshold).HasDefaultValue(5);
+        b.ToTable("InventoryItems");
+        b.HasKey(x => x.Id);
 
-        builder.Ignore(i => i.AvailableQuantity);
-        builder.Ignore(i => i.IsLowStock);
+        b.Property(x => x.LowStockThreshold).HasDefaultValue(5);
 
-        builder.HasOne(i => i.Product)
+        b.HasOne(x => x.Product)
             .WithMany(p => p.InventoryItems)
-            .HasForeignKey(i => i.ProductId)
+            .HasForeignKey(x => x.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasOne(i => i.Warehouse)
+        b.HasOne(x => x.Warehouse)
             .WithMany(w => w.InventoryItems)
-            .HasForeignKey(i => i.WarehouseId)
-            .OnDelete(DeleteBehavior.Cascade);
+            .HasForeignKey(x => x.WarehouseId)
+            .OnDelete(DeleteBehavior.Restrict);
 
-        // Optimistic concurrency token — EF throws DbUpdateConcurrencyException when two
-        // concurrent transactions both read and update the same InventoryItem row.
-        // Callers of ReserveAsync should catch DbUpdateConcurrencyException and retry.
-        builder.Property<byte[]>("RowVersion").IsRowVersion();
+        // One inventory row per (product, warehouse).
+        b.HasIndex(x => new { x.ProductId, x.WarehouseId }).IsUnique();
 
-        builder.HasIndex(i => i.ProductId);
-        builder.HasIndex(i => new { i.ProductId, i.WarehouseId }).IsUnique();
+        // Computed, not persisted.
+        b.Ignore(x => x.AvailableQuantity);
+        b.Ignore(x => x.IsLowStock);
     }
 }

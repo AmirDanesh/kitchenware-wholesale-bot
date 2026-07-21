@@ -4,17 +4,21 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace KitchenwareBot.Infrastructure.Persistence.Configurations;
 
-internal sealed class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
+public class AppUserConfiguration : IEntityTypeConfiguration<AppUser>
 {
-    public void Configure(EntityTypeBuilder<AppUser> builder)
+    public void Configure(EntityTypeBuilder<AppUser> b)
     {
-        builder.HasKey(u => u.Id);
-        builder.Property(u => u.Username).HasMaxLength(100);
-        builder.Property(u => u.FirstName).HasMaxLength(200);
-        builder.Property(u => u.Phone).HasMaxLength(20);
-        builder.Property(u => u.DefaultAddress).HasMaxLength(1000);
-        builder.Property(u => u.IsBanned).HasDefaultValue(false);
+        b.ToTable("Users");
+        b.HasKey(x => x.Id);
 
-        builder.HasIndex(u => u.TelegramId).IsUnique();
+        b.Property(x => x.Username).HasMaxLength(100);
+        b.Property(x => x.FirstName).HasMaxLength(200);
+        b.Property(x => x.Phone).HasMaxLength(30);
+        b.Property(x => x.DefaultAddress).HasMaxLength(1000);
+        b.Property(x => x.Role).HasConversion<int>();
+
+        b.HasIndex(x => x.TelegramId).IsUnique();
+
+        b.Ignore(x => x.IsAdmin);
     }
 }

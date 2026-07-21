@@ -4,23 +4,17 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace KitchenwareBot.Infrastructure.Persistence.Configurations;
 
-internal sealed class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
+public class WarehouseConfiguration : IEntityTypeConfiguration<Warehouse>
 {
-    internal static readonly Guid DefaultWarehouseId = new("20000000-0000-0000-0000-000000000001");
-
-    public void Configure(EntityTypeBuilder<Warehouse> builder)
+    public void Configure(EntityTypeBuilder<Warehouse> b)
     {
-        builder.HasKey(w => w.Id);
-        builder.Property(w => w.Name).IsRequired().HasMaxLength(200);
-        builder.Property(w => w.Location).HasMaxLength(500);
-        builder.Property(w => w.IsActive).HasDefaultValue(true);
+        b.ToTable("Warehouses");
+        b.HasKey(x => x.Id);
 
-        builder.HasData(new
-        {
-            Id = DefaultWarehouseId,
-            Name = "انبار اصلی",
-            Location = (string?)null,
-            IsActive = true
-        });
+        b.Property(x => x.Name).IsRequired().HasMaxLength(150);
+        b.Property(x => x.Location).HasMaxLength(300);
+
+        // Seed one default warehouse.
+        b.HasData(new { Id = Warehouse.DefaultId, Name = "انبار مرکزی", Location = (string?)null, IsActive = true });
     }
 }

@@ -4,21 +4,19 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace KitchenwareBot.Infrastructure.Persistence.Configurations;
 
-internal sealed class ProductDiscountTierConfiguration : IEntityTypeConfiguration<ProductDiscountTier>
+public class ProductDiscountTierConfiguration : IEntityTypeConfiguration<ProductDiscountTier>
 {
-    public void Configure(EntityTypeBuilder<ProductDiscountTier> builder)
+    public void Configure(EntityTypeBuilder<ProductDiscountTier> b)
     {
-        builder.HasKey(t => t.Id);
-        builder.Property(t => t.DiscountPercent).HasPrecision(5, 2);
-        builder.Property(t => t.IsActive).HasDefaultValue(true);
-        builder.Property(t => t.DisplayOrder).HasDefaultValue(0);
+        b.ToTable("ProductDiscountTiers");
+        b.HasKey(x => x.Id);
 
-        builder.HasOne(t => t.Product)
+        b.HasOne(x => x.Product)
             .WithMany(p => p.DiscountTiers)
-            .HasForeignKey(t => t.ProductId)
+            .HasForeignKey(x => x.ProductId)
             .OnDelete(DeleteBehavior.Cascade);
 
-        builder.HasIndex(t => t.ProductId);
-        builder.HasIndex(t => new { t.ProductId, t.IsActive });
+        b.HasIndex(x => x.ProductId);
+        b.HasIndex(x => new { x.ProductId, x.MinQuantity });
     }
 }

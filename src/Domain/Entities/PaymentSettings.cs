@@ -1,13 +1,19 @@
+using KitchenwareBot.Domain.Common;
+
 namespace KitchenwareBot.Domain.Entities;
 
-public class PaymentSettings
+/// <summary>Singleton row controlling which payment methods are enabled and the bank
+/// details shown to customers. The shop is "open" only when at least one method is on.</summary>
+public class PaymentSettings : BaseEntity
 {
-    public Guid Id { get; private set; }
+    /// <summary>Well-known Id of the single settings row (singleton pattern).</summary>
+    public static readonly Guid SingletonId = Guid.Parse("11111111-1111-1111-1111-111111111111");
+
     public bool BankTransferEnabled { get; private set; }
     public bool CashEnabled { get; private set; }
-    public string BankAccountName { get; private set; } = default!;
-    public string BankAccountNumber { get; private set; } = default!;
-    public string BankName { get; private set; } = default!;
+    public string? BankAccountName { get; private set; }
+    public string? BankAccountNumber { get; private set; }
+    public string? BankName { get; private set; }
     public string? BankNote { get; private set; }
 
     public bool IsShopOpen => BankTransferEnabled || CashEnabled;
@@ -15,26 +21,21 @@ public class PaymentSettings
     private PaymentSettings() { }
 
     public static PaymentSettings CreateDefault()
-    {
-        return new PaymentSettings
+        => new()
         {
-            Id = Guid.NewGuid(),
+            Id = SingletonId,
             BankTransferEnabled = false,
-            CashEnabled = false,
-            BankAccountName = string.Empty,
-            BankAccountNumber = string.Empty,
-            BankName = string.Empty
+            CashEnabled = false
         };
-    }
 
-    public void Update(bool bankTransferEnabled, bool cashEnabled,
-        string bankAccountName, string bankAccountNumber, string bankName, string? bankNote)
+    public void SetBankTransferEnabled(bool enabled) => BankTransferEnabled = enabled;
+    public void SetCashEnabled(bool enabled) => CashEnabled = enabled;
+
+    public void UpdateBankDetails(string? bankName, string? accountNumber, string? accountName, string? note)
     {
-        BankTransferEnabled = bankTransferEnabled;
-        CashEnabled = cashEnabled;
-        BankAccountName = bankAccountName;
-        BankAccountNumber = bankAccountNumber;
         BankName = bankName;
-        BankNote = bankNote;
+        BankAccountNumber = accountNumber;
+        BankAccountName = accountName;
+        BankNote = note;
     }
 }

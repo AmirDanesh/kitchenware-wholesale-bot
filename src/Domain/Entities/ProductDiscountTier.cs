@@ -1,31 +1,28 @@
+using KitchenwareBot.Domain.Common;
+
 namespace KitchenwareBot.Domain.Entities;
 
-public class ProductDiscountTier
+/// <summary>A quantity-discount tier specific to one product. If a product has any
+/// active tiers, they completely replace the global tiers for that product.</summary>
+public class ProductDiscountTier : BaseEntity
 {
-    public Guid Id { get; private set; }
     public Guid ProductId { get; private set; }
     public int MinQuantity { get; private set; }
     public int? MaxQuantity { get; private set; }
     public decimal DiscountPercent { get; private set; }
-    public bool IsActive { get; private set; }
+    public bool IsActive { get; private set; } = true;
     public int DisplayOrder { get; private set; }
 
-    public Product Product { get; private set; } = default!;
+    // Navigation
+    public Product? Product { get; private set; }
 
     private ProductDiscountTier() { }
 
-    public static ProductDiscountTier Create(Guid productId, int minQuantity, int? maxQuantity, decimal discountPercent, int displayOrder)
+    public static ProductDiscountTier Create(Guid productId, int minQuantity, int? maxQuantity, decimal discountPercent, int displayOrder = 0)
     {
-        if (minQuantity < 0)
-            throw new InvalidOperationException("حداقل تعداد نمی‌تواند منفی باشد.");
-        if (maxQuantity.HasValue && maxQuantity < minQuantity)
-            throw new InvalidOperationException("حداکثر تعداد نمی‌تواند از حداقل تعداد کمتر باشد.");
-        if (discountPercent < 0 || discountPercent > 100)
-            throw new InvalidOperationException("درصد تخفیف باید بین ۰ و ۱۰۰ باشد.");
-
+        GlobalDiscountTier.Validate(minQuantity, maxQuantity, discountPercent);
         return new ProductDiscountTier
         {
-            Id = Guid.NewGuid(),
             ProductId = productId,
             MinQuantity = minQuantity,
             MaxQuantity = maxQuantity,
@@ -35,21 +32,17 @@ public class ProductDiscountTier
         };
     }
 
-    public void Update(int minQuantity, int? maxQuantity, decimal discountPercent, int displayOrder)
+    public void Update(int minQuantity, int? maxQuantity, decimal discountPercent)
     {
-        if (minQuantity < 0)
-            throw new InvalidOperationException("حداقل تعداد نمی‌تواند منفی باشد.");
-        if (maxQuantity.HasValue && maxQuantity < minQuantity)
-            throw new InvalidOperationException("حداکثر تعداد نمی‌تواند از حداقل تعداد کمتر باشد.");
-        if (discountPercent < 0 || discountPercent > 100)
-            throw new InvalidOperationException("درصد تخفیف باید بین ۰ و ۱۰۰ باشد.");
-
+        GlobalDiscountTier.Validate(minQuantity, maxQuantity, discountPercent);
         MinQuantity = minQuantity;
         MaxQuantity = maxQuantity;
         DiscountPercent = discountPercent;
-        DisplayOrder = displayOrder;
     }
 
-    public void Activate() => IsActive = true;
-    public void Deactivate() => IsActive = false;
+    public void SetActive(bool active) => IsActive = active;
+    public void SetDisplayOrder(int order) => DisplayOrder = order;
+
+    public bool Matches(int quantity)
+        => quantity >= MinQuantity && (MaxQuantity is null || quantity <= MaxQuantity);
 }

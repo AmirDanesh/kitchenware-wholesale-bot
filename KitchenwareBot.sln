@@ -1,0 +1,54 @@
+﻿Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{0583413F-24F6-4E3C-A359-52DBD826C495}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KitchenwareBot.Domain", "src\Domain\KitchenwareBot.Domain.csproj", "{580AA34B-C900-4558-A90D-26343721DB4C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KitchenwareBot.Application", "src\Application\KitchenwareBot.Application.csproj", "{7EE64DE5-1B38-4CC2-89F0-0E28C973402A}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KitchenwareBot.Infrastructure", "src\Infrastructure\KitchenwareBot.Infrastructure.csproj", "{2CF7C47D-C4A3-462F-BD55-0C954A7C3EDB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KitchenwareBot.Bot", "src\Bot\KitchenwareBot.Bot.csproj", "{FAD400EA-F845-424B-993F-2063894ACD0F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "KitchenwareBot.API", "src\API\KitchenwareBot.API.csproj", "{8CB766F9-36B2-41AA-86AF-1CC8CBD34EDA}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{580AA34B-C900-4558-A90D-26343721DB4C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{580AA34B-C900-4558-A90D-26343721DB4C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{580AA34B-C900-4558-A90D-26343721DB4C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{580AA34B-C900-4558-A90D-26343721DB4C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7EE64DE5-1B38-4CC2-89F0-0E28C973402A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7EE64DE5-1B38-4CC2-89F0-0E28C973402A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7EE64DE5-1B38-4CC2-89F0-0E28C973402A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7EE64DE5-1B38-4CC2-89F0-0E28C973402A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2CF7C47D-C4A3-462F-BD55-0C954A7C3EDB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2CF7C47D-C4A3-462F-BD55-0C954A7C3EDB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2CF7C47D-C4A3-462F-BD55-0C954A7C3EDB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2CF7C47D-C4A3-462F-BD55-0C954A7C3EDB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FAD400EA-F845-424B-993F-2063894ACD0F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FAD400EA-F845-424B-993F-2063894ACD0F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FAD400EA-F845-424B-993F-2063894ACD0F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FAD400EA-F845-424B-993F-2063894ACD0F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8CB766F9-36B2-41AA-86AF-1CC8CBD34EDA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8CB766F9-36B2-41AA-86AF-1CC8CBD34EDA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8CB766F9-36B2-41AA-86AF-1CC8CBD34EDA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8CB766F9-36B2-41AA-86AF-1CC8CBD34EDA}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{580AA34B-C900-4558-A90D-26343721DB4C} = {0583413F-24F6-4E3C-A359-52DBD826C495}
+		{7EE64DE5-1B38-4CC2-89F0-0E28C973402A} = {0583413F-24F6-4E3C-A359-52DBD826C495}
+		{2CF7C47D-C4A3-462F-BD55-0C954A7C3EDB} = {0583413F-24F6-4E3C-A359-52DBD826C495}
+		{FAD400EA-F845-424B-993F-2063894ACD0F} = {0583413F-24F6-4E3C-A359-52DBD826C495}
+		{8CB766F9-36B2-41AA-86AF-1CC8CBD34EDA} = {0583413F-24F6-4E3C-A359-52DBD826C495}
+	EndGlobalSection
+EndGlobal

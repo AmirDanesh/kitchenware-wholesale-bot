@@ -4,16 +4,15 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace KitchenwareBot.Infrastructure.Persistence.Configurations;
 
-internal sealed class GlobalDiscountTierConfiguration : IEntityTypeConfiguration<GlobalDiscountTier>
+public class GlobalDiscountTierConfiguration : IEntityTypeConfiguration<GlobalDiscountTier>
 {
-    public void Configure(EntityTypeBuilder<GlobalDiscountTier> builder)
+    public void Configure(EntityTypeBuilder<GlobalDiscountTier> b)
     {
-        builder.HasKey(t => t.Id);
-        builder.Property(t => t.DiscountPercent).HasPrecision(5, 2);
-        builder.Property(t => t.IsActive).HasDefaultValue(true);
-        builder.Property(t => t.DisplayOrder).HasDefaultValue(0);
+        b.ToTable("GlobalDiscountTiers");
+        b.HasKey(x => x.Id);
 
-        builder.HasIndex(t => t.IsActive);
-        builder.HasIndex(t => t.MinQuantity);
+        // DiscountPercent precision comes from the global 18,2 decimal convention.
+        b.HasIndex(x => x.MinQuantity);
+        b.HasIndex(x => x.DisplayOrder);
     }
 }

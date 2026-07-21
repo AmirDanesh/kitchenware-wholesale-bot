@@ -1,91 +1,82 @@
+using KitchenwareBot.Domain.Common;
+using KitchenwareBot.Domain.Exceptions;
+
 namespace KitchenwareBot.Domain.Entities;
 
-public class InventoryItem
+/// <summary>Per-warehouse stock for a product. Reservation lifecycle:
+/// Reserve (on order placed) → Consume (on confirm) or Release (on cancel).</summary>
+public class InventoryItem : BaseEntity
 {
-    public Guid Id { get; private set; }
     public Guid ProductId { get; private set; }
     public Guid WarehouseId { get; private set; }
     public int Quantity { get; private set; }
     public int ReservedQuantity { get; private set; }
     public int LowStockThreshold { get; private set; } = 5;
 
+    // Navigation
+    public Product? Product { get; private set; }
+    public Warehouse? Warehouse { get; private set; }
+
+    /// <summary>Stock that can still be sold (not already reserved).</summary>
     public int AvailableQuantity => Quantity - ReservedQuantity;
     public bool IsLowStock => AvailableQuantity <= LowStockThreshold;
 
-    public Product Product { get; private set; } = default!;
-    public Warehouse Warehouse { get; private set; } = default!;
-
     private InventoryItem() { }
 
-    public static InventoryItem Create(Guid productId, Guid warehouseId, int initialQuantity = 0, int lowStockThreshold = 5)
+    public static InventoryItem Create(Guid productId, Guid warehouseId, int quantity = 0, int lowStockThreshold = 5)
     {
-        if (initialQuantity < 0)
-            throw new InvalidOperationException("موجودی اولیه نمی‌تواند منفی باشد.");
-
+        if (quantity < 0) throw new ArgumentOutOfRangeException(nameof(quantity));
         return new InventoryItem
         {
-            Id = Guid.NewGuid(),
             ProductId = productId,
             WarehouseId = warehouseId,
-            Quantity = initialQuantity,
+            Quantity = quantity,
             ReservedQuantity = 0,
-            LowStockThreshold = lowStockThreshold
+            LowStockThreshold = Math.Max(0, lowStockThreshold)
         };
     }
 
-    // Admin adjusts total stock (positive or negative delta)
+    /// <summary>Absolute stock adjustment (+/-). Cannot push physical quantity below what is reserved.</summary>
     public void Adjust(int delta)
     {
-        var newQuantity = Quantity + delta;
-        if (newQuantity < 0)
-            throw new InvalidOperationException("موجودی نمی‌تواند منفی باشد.");
-        if (newQuantity < ReservedQuantity)
-            throw new InvalidOperationException("موجودی نمی‌تواند از مقدار رزرو شده کمتر باشد.");
-
-        Quantity = newQuantity;
+        var newQty = Quantity + delta;
+        if (newQty < 0)
+            throw new InvalidOperationException("Stock adjustment would make quantity negative.");
+        if (newQty < ReservedQuantity)
+            throw new InvalidOperationException("Cannot reduce quantity below the reserved amount.");
+        Quantity = newQty;
     }
 
-    // Called when customer places an order
+    /// <summary>Reserve stock for a pending order. Throws if not enough is available.</summary>
     public void Reserve(int qty)
     {
-        if (qty <= 0)
-            throw new InvalidOperationException("مقدار رزرو باید بیشتر از صفر باشد.");
-        if (AvailableQuantity < qty)
-            throw new InvalidOperationException("موجودی کافی نیست.");
-
+        RequirePositive(qty);
+        if (qty > AvailableQuantity)
+            throw new InsufficientStockException(ProductId, Product?.Name ?? string.Empty, qty, AvailableQuantity);
         ReservedQuantity += qty;
     }
 
-    // Called when order is cancelled
+    /// <summary>Release a previous reservation (order cancelled). Quantity is unchanged.</summary>
     public void Release(int qty)
     {
-        if (qty <= 0)
-            throw new InvalidOperationException("مقدار آزادسازی باید بیشتر از صفر باشد.");
-        if (ReservedQuantity < qty)
-            throw new InvalidOperationException("مقدار رزرو شده کمتر از مقدار درخواستی است.");
-
-        ReservedQuantity -= qty;
+        RequirePositive(qty);
+        ReservedQuantity = Math.Max(0, ReservedQuantity - qty);
     }
 
-    // Called when admin confirms an order — deducts from total stock and reservation
+    /// <summary>Consume stock for a confirmed order: reduces both physical and reserved quantity.</summary>
     public void Consume(int qty)
     {
-        if (qty <= 0)
-            throw new InvalidOperationException("مقدار مصرف باید بیشتر از صفر باشد.");
-        if (ReservedQuantity < qty)
-            throw new InvalidOperationException("مقدار رزرو شده کمتر از مقدار درخواستی است.");
-        if (Quantity < qty)
-            throw new InvalidOperationException("موجودی کل کافی نیست.");
-
+        RequirePositive(qty);
+        if (qty > Quantity)
+            throw new InvalidOperationException("Cannot consume more than the physical quantity.");
         Quantity -= qty;
-        ReservedQuantity -= qty;
+        ReservedQuantity = Math.Max(0, ReservedQuantity - qty);
     }
 
-    public void SetLowStockThreshold(int threshold)
-    {
-        if (threshold < 0)
-            throw new InvalidOperationException("حد هشدار موجودی نمی‌تواند منفی باشد.");
+    public void SetLowStockThreshold(int threshold) => LowStockThreshold = Math.Max(0, threshold);
 
-        LowStockThreshold = threshold;
+    private static void RequirePositive(int qty)
+    {
+        if (qty <= 0) throw new ArgumentOutOfRangeException(nameof(qty), "Quantity must be positive.");
     }
 }

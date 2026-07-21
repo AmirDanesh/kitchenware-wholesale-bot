@@ -1,8 +1,9 @@
-using KitchenwareBot.Application.Interfaces;
-using KitchenwareBot.Domain.Interfaces;
+using KitchenwareBot.Application.Sessions;
+using KitchenwareBot.Domain.Repositories;
+using KitchenwareBot.Infrastructure.Configuration;
 using KitchenwareBot.Infrastructure.Persistence;
-using KitchenwareBot.Infrastructure.Repositories;
-using KitchenwareBot.Infrastructure.Services;
+using KitchenwareBot.Infrastructure.Persistence.Repositories;
+using KitchenwareBot.Infrastructure.Redis;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -14,29 +15,29 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        var sqlConnectionString = configuration.GetConnectionString("Default")
-            ?? throw new InvalidOperationException("ConnectionStrings:Default is not configured.");
-        services.AddDbContext<AppDbContext>(options => options.UseSqlServer(sqlConnectionString));
+        // ── EF Core / SQL Server ─────────────────────────────────
+        services.AddDbContext<AppDbContext>(options =>
+            options.UseSqlServer(
+                configuration.GetConnectionString("Default"),
+                sql => sql.EnableRetryOnFailure()));
 
-        services.AddScoped<IUnitOfWork>(sp => sp.GetRequiredService<AppDbContext>());
-
+        // ── Repositories + Unit of Work ──────────────────────────
         services.AddScoped<IProductRepository, ProductRepository>();
         services.AddScoped<IOrderRepository, OrderRepository>();
         services.AddScoped<IInventoryRepository, InventoryRepository>();
-        services.AddScoped<IDiscountRepository, DiscountRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
+        services.AddScoped<IDiscountRepository, DiscountRepository>();
         services.AddScoped<IPaymentSettingsRepository, PaymentSettingsRepository>();
         services.AddScoped<IWarehouseRepository, WarehouseRepository>();
+        services.AddScoped<IUnitOfWork, UnitOfWork>();
 
-        var redisConnectionString = configuration["Redis:Connection"]
-            ?? throw new InvalidOperationException("Redis:Connection is not configured.");
-        services.AddSingleton<IConnectionMultiplexer>(_ =>
-        {
-            var redisConfig = ConfigurationOptions.Parse(redisConnectionString);
-            redisConfig.AbortOnConnectFail = false;
-            return ConnectionMultiplexer.Connect(redisConfig);
-        });
-        services.AddScoped<IBotStateService, RedisBotStateService>();
+        // ── Redis (bot FSM state) ────────────────────────────────
+        services.Configure<RedisOptions>(configuration.GetSection("Redis"));
+        var redisConnection = configuration.GetSection("Redis")["Connection"] ?? "localhost:6379";
+        var redisConfig = ConfigurationOptions.Parse(redisConnection);
+        redisConfig.AbortOnConnectFail = false; // stay resilient if Redis is briefly unavailable
+        services.AddSingleton<IConnectionMultiplexer>(_ => ConnectionMultiplexer.Connect(redisConfig));
+        services.AddSingleton<IBotStateService, RedisBotStateService>();
 
         return services;
     }

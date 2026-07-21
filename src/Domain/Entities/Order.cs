@@ -1,14 +1,22 @@
+using KitchenwareBot.Domain.Common;
 using KitchenwareBot.Domain.Enums;
+using KitchenwareBot.Domain.Exceptions;
 
 namespace KitchenwareBot.Domain.Entities;
 
-public class Order
+/// <summary>
+/// A customer order aggregate. Owns its <see cref="OrderItem"/> lines and enforces
+/// the status workflow: Pending → Confirmed → Processing → Shipped → Delivered,
+/// with Cancelled reachable from any non-terminal stage.
+/// </summary>
+public class Order : BaseEntity, IAuditable
 {
-    public Guid Id { get; private set; }
+    private readonly List<OrderItem> _items = new();
+
     public long CustomerTelegramId { get; private set; }
-    public string CustomerName { get; private set; } = default!;
+    public string CustomerName { get; private set; } = string.Empty;
     public string? CustomerPhone { get; private set; }
-    public OrderStatus Status { get; private set; }
+    public OrderStatus Status { get; private set; } = OrderStatus.Pending;
     public PaymentMethod PaymentMethod { get; private set; }
     public DeliveryType DeliveryType { get; private set; }
     public string? ShippingAddress { get; private set; }
@@ -17,50 +25,72 @@ public class Order
     public DateTime CreatedAt { get; private set; }
     public DateTime UpdatedAt { get; private set; }
 
-    // EF Core populates this via backing field — T-18 config must call .HasField("_items")
-    private List<OrderItem> _items = new();
+    // Navigation
     public IReadOnlyCollection<OrderItem> Items => _items.AsReadOnly();
+
+    /// <summary>Short, human-friendly order code derived from the Id, e.g. "#1A2B3C4D".</summary>
+    public string ShortCode => "#" + Id.ToString("N")[..8].ToUpperInvariant();
 
     private Order() { }
 
     public static Order Create(long customerTelegramId, string customerName, string? customerPhone,
         PaymentMethod paymentMethod, DeliveryType deliveryType, string? shippingAddress)
     {
+        if (deliveryType == DeliveryType.Shipping && string.IsNullOrWhiteSpace(shippingAddress))
+            throw new ArgumentException("Shipping orders require an address.", nameof(shippingAddress));
+
         return new Order
         {
-            Id = Guid.NewGuid(),
             CustomerTelegramId = customerTelegramId,
-            CustomerName = customerName,
+            CustomerName = (customerName ?? string.Empty).Trim(),
             CustomerPhone = customerPhone,
-            Status = OrderStatus.Pending,
             PaymentMethod = paymentMethod,
             DeliveryType = deliveryType,
-            ShippingAddress = shippingAddress,
-            TotalAmount = 0,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            ShippingAddress = deliveryType == DeliveryType.Shipping ? shippingAddress : null,
+            Status = OrderStatus.Pending
         };
     }
 
-    public void AddItem(Guid productId, string productName, decimal originalPrice,
-        decimal discountPercent, int quantity)
+    public OrderItem AddItem(Guid productId, string productName, decimal originalPrice, decimal discountPercent, int quantity)
     {
         var item = OrderItem.Create(Id, productId, productName, originalPrice, discountPercent, quantity);
         _items.Add(item);
         RecalculateTotal();
+        return item;
     }
 
-    public void UpdateStatus(OrderStatus status, string? note = null)
+    public void RecalculateTotal() => TotalAmount = _items.Sum(i => i.SubTotal);
+
+    public void UpdateStatus(OrderStatus target, string? note = null)
     {
-        Status = status;
-        if (note is not null)
-            AdminNote = note;
-        UpdatedAt = DateTime.UtcNow;
+        if (!IsValidTransition(Status, target))
+            throw new InvalidOrderStatusTransitionException(Status, target);
+
+        Status = target;
+        if (!string.IsNullOrWhiteSpace(note))
+            AdminNote = note.Trim();
     }
 
-    public void RecalculateTotal()
+    public void SetAdminNote(string? note) => AdminNote = note?.Trim();
+
+    public bool IsTerminal => Status is OrderStatus.Delivered or OrderStatus.Cancelled;
+
+    public static bool IsValidTransition(OrderStatus from, OrderStatus to)
     {
-        TotalAmount = _items.Sum(i => i.SubTotal);
-        UpdatedAt = DateTime.UtcNow;
+        if (from == to) return false;
+        if (to == OrderStatus.Cancelled)
+            return from is not (OrderStatus.Delivered or OrderStatus.Cancelled);
+
+        return (from, to) switch
+        {
+            (OrderStatus.Pending, OrderStatus.Confirmed) => true,
+            (OrderStatus.Confirmed, OrderStatus.Processing) => true,
+            (OrderStatus.Processing, OrderStatus.Shipped) => true,
+            (OrderStatus.Shipped, OrderStatus.Delivered) => true,
+            _ => false
+        };
     }
+
+    public void OnCreated(DateTime utcNow) { CreatedAt = utcNow; UpdatedAt = utcNow; }
+    public void OnUpdated(DateTime utcNow) => UpdatedAt = utcNow;
 }

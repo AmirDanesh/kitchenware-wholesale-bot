@@ -4,29 +4,21 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace KitchenwareBot.Infrastructure.Persistence.Configurations;
 
-internal sealed class PaymentSettingsConfiguration : IEntityTypeConfiguration<PaymentSettings>
+public class PaymentSettingsConfiguration : IEntityTypeConfiguration<PaymentSettings>
 {
-    private static readonly Guid DefaultId = new("10000000-0000-0000-0000-000000000001");
-
-    public void Configure(EntityTypeBuilder<PaymentSettings> builder)
+    public void Configure(EntityTypeBuilder<PaymentSettings> b)
     {
-        builder.HasKey(s => s.Id);
-        builder.Property(s => s.BankAccountName).IsRequired().HasMaxLength(200);
-        builder.Property(s => s.BankAccountNumber).IsRequired().HasMaxLength(50);
-        builder.Property(s => s.BankName).IsRequired().HasMaxLength(200);
-        builder.Property(s => s.BankNote).HasMaxLength(1000);
+        b.ToTable("PaymentSettings");
+        b.HasKey(x => x.Id);
 
-        builder.Ignore(s => s.IsShopOpen);
+        b.Property(x => x.BankAccountName).HasMaxLength(200);
+        b.Property(x => x.BankAccountNumber).HasMaxLength(50);
+        b.Property(x => x.BankName).HasMaxLength(150);
+        b.Property(x => x.BankNote).HasMaxLength(1000);
 
-        builder.HasData(new
-        {
-            Id = DefaultId,
-            BankTransferEnabled = false,
-            CashEnabled = false,
-            BankAccountName = string.Empty,
-            BankAccountNumber = string.Empty,
-            BankName = string.Empty,
-            BankNote = (string?)null
-        });
+        b.Ignore(x => x.IsShopOpen);
+
+        // Seed the singleton settings row with both methods disabled (shop starts closed).
+        b.HasData(new { Id = PaymentSettings.SingletonId, BankTransferEnabled = false, CashEnabled = false });
     }
 }
