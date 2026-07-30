@@ -18,7 +18,7 @@ Persian Telegram bot for wholesale kitchenware sales. KitchenwareBot manages the
 
 - Browse categories and paginated product lists
 - View product details, stock, and discount tiers
-- Add fixed or custom quantities to a Redis-backed cart
+- Add fixed or custom quantities to a cached cart
 - Choose shipping or in-person delivery
 - Choose any payment method currently enabled by an administrator
 - Place orders with atomic stock reservation and locked price snapshots
@@ -38,7 +38,7 @@ Persian Telegram bot for wholesale kitchenware sales. KitchenwareBot manages the
 ### Platform
 
 - SQL Server with EF Core 8 code-first migrations
-- Redis conversation state with a configurable 30-minute default TTL
+- In-process conversation state in Debug; Redis-backed state in Release
 - Plain application services through dependency injection; no MediatR
 - Automatic polling/webhook mode selection
 - Optional webhook secret-token validation
@@ -51,7 +51,7 @@ Persian Telegram bot for wholesale kitchenware sales. KitchenwareBot manages the
 src/
 ├── Domain/          Entities, enums, exceptions, repository contracts
 ├── Application/     Business services, DTOs, validation, messages, sessions
-├── Infrastructure/  EF Core, SQL Server repositories, Redis state
+├── Infrastructure/  EF Core, repositories, in-memory/Redis state
 ├── Bot/             Telegram routing, handlers, keyboards, hosting
 └── API/             Future website REST API scaffold
 ```
@@ -71,8 +71,8 @@ Business rules stay in `Application`. `Bot` and `API` remain thin entry points. 
 ## Requirements
 
 - [.NET 8 SDK](https://dotnet.microsoft.com/download/dotnet/8.0)
-- SQL Server LocalDB for local development, or another SQL Server instance
-- Redis locally or through Docker
+- SQL Server for Release builds, migrations, and database-sensitive testing
+- Redis for Release builds and Docker deployment
 - Telegram bot token from [@BotFather](https://t.me/BotFather)
 - Docker Desktop or Docker Engine with Compose for container deployment
 
@@ -85,13 +85,7 @@ git clone https://github.com/AmirDanesh/kitchenware-wholesale-bot.git
 cd kitchenware-wholesale-bot
 ```
 
-### 2. Start Redis
-
-```powershell
-docker run --detach --name kitchenware-redis --publish 6379:6379 redis:7.4-alpine
-```
-
-### 3. Configure development secrets
+### 2. Configure development secrets
 
 The Bot project has a .NET user-secrets ID. Store local credentials outside tracked configuration:
 
@@ -101,17 +95,17 @@ dotnet user-secrets set "Telegram:BotUsername" "YOUR_BOT_USERNAME" --project src
 dotnet user-secrets set "Telegram:AdminIds:0" "YOUR_TELEGRAM_ID" --project src/Bot
 ```
 
-Default local configuration uses SQL Server LocalDB and `localhost:6379`. Override `ConnectionStrings:Default` or `Redis:Connection` through user secrets when needed.
+Debug builds use non-persistent EF Core InMemory and `IMemoryCache`; SQL Server and Redis are not required. All data and bot sessions reset whenever the process stops. Release builds use SQL Server and Redis.
 
-### 4. Apply database migrations
+### 3. Apply database migrations when using SQL Server
 
 ```powershell
 dotnet ef database update --project src/Infrastructure --startup-project src/Bot
 ```
 
-The Bot also applies pending EF Core migrations during startup.
+Release builds also apply pending EF Core migrations during startup. Debug builds initialize the InMemory database instead.
 
-### 5. Run
+### 4. Run
 
 ```powershell
 dotnet run --project src/Bot

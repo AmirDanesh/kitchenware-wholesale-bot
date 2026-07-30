@@ -47,6 +47,8 @@ services:
       timeout: 5s
       retries: 20
       start_period: 30s
+    ports:
+      - "${SQLSERVER_PORT:-1433}:1433"
     networks:
       - backend
 
@@ -62,6 +64,8 @@ services:
       timeout: 3s
       retries: 10
       start_period: 5s
+    ports:
+      - "6379:6379"
     networks:
       - backend
 

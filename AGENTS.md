@@ -1,7 +1,7 @@
 # KitchenwareBot — Project Context
 
 Wholesale kitchenware Telegram bot with REST API for future website integration.
-Persian-only UI, Toman pricing, webhook mode, SQL Server, Redis FSM.
+Persian-only UI, Toman pricing, webhook mode, SQL Server, Redis FSM in Release.
 
 > Full details imported below. Keep this file under 200 lines.
 
@@ -37,9 +37,9 @@ Domain ◄── all projects
 |---------|--------|
 | Runtime | .NET 8, C# |
 | Bot | Telegram.Bot 21.x — **Webhook** in production, **Polling** in dev |
-| Database | SQL Server — LocalDB (dev), Express (prod) |
+| Database | EF Core InMemory (Debug), SQL Server (Release/prod) |
 | ORM | EF Core 8, `Microsoft.EntityFrameworkCore.SqlServer` |
-| State | Redis via `StackExchange.Redis` — bot conversation FSM |
+| State | `IMemoryCache` (Debug), Redis via `StackExchange.Redis` (Release) |
 | Validation | FluentValidation |
 | Mediator | ❌ None — plain service classes injected via DI |
 | Containerization | Docker + docker-compose |
@@ -61,7 +61,7 @@ Domain ◄── all projects
 ## Key Patterns at a Glance
 
 **Bot FSM (Finite State Machine)**
-- Each user has a `UserSession` object stored in Redis as JSON
+- Each user has a JSON-serialized `UserSession`: `IMemoryCache` in Debug, Redis in Release
 - Key: `bot:session:{telegramId}`, TTL: 30 minutes
 - `UpdateRouter` reads session state → dispatches to correct handler
 - Handlers update state + save session before returning
@@ -91,21 +91,20 @@ Order cancelled → stock.Release(qty)
 ## How to Run Locally
 
 ```bash
-# 1. Start Redis
-docker run -d -p 6379:6379 redis:alpine
+# 1. Debug uses in-memory database and session cache; SQL Server and Redis are not needed
 
-# 2. Create/update database (LocalDB auto-starts)
+# Apply SQL Server migrations for Release/relational testing when needed
 dotnet ef database update \
-  --project src/KitchenwareBot.Infrastructure \
-  --startup-project src/KitchenwareBot.Bot
+  --project src/Infrastructure \
+  --startup-project src/Bot
 
-# 3. Run in polling mode (leave WebhookUrl empty in appsettings.Development.json)
-dotnet run --project src/KitchenwareBot.Bot
+# 2. Run Debug in polling mode (leave WebhookUrl empty in appsettings.Development.json)
+dotnet run --project src/Bot
 
-# 4. New migration
+# 3. New migration
 dotnet ef migrations add MigrationName \
-  --project src/KitchenwareBot.Infrastructure \
-  --startup-project src/KitchenwareBot.Bot
+  --project src/Infrastructure \
+  --startup-project src/Bot
 ```
 
 ---

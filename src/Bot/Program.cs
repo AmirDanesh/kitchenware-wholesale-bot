@@ -53,8 +53,8 @@ builder.Services.AddHealthChecks();
 
 var app = builder.Build();
 
-// ── Apply EF migrations on startup (idempotent) ───────────────────
-await ApplyMigrationsAsync(app);
+// ── Initialize persistence on startup (idempotent) ────────────────
+await InitializeDatabaseAsync(app);
 
 // ── Endpoints ─────────────────────────────────────────────────────
 app.MapHealthChecks("/health");
@@ -88,19 +88,28 @@ app.MapPost("/telegram/webhook", async (HttpContext http, UpdateRouter router, I
 
 app.Run();
 
-static async Task ApplyMigrationsAsync(WebApplication app)
+static async Task InitializeDatabaseAsync(WebApplication app)
 {
     using var scope = app.Services.CreateScope();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
     try
     {
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        await db.Database.MigrateAsync();
-        logger.LogInformation("Database migrations applied.");
+        if (string.Equals(db.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory",
+                StringComparison.Ordinal))
+        {
+            await db.Database.EnsureCreatedAsync();
+            logger.LogInformation("Debug in-memory database initialized.");
+        }
+        else
+        {
+            await db.Database.MigrateAsync();
+            logger.LogInformation("Database migrations applied.");
+        }
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Failed to apply database migrations on startup.");
+        logger.LogError(ex, "Failed to initialize database on startup.");
     }
 }
 

@@ -18,6 +18,15 @@ public class UnitOfWork : IUnitOfWork
     /// </summary>
     public async Task ExecuteInTransactionAsync(Func<CancellationToken, Task> action, CancellationToken ct = default)
     {
+        if (IsInMemory())
+        {
+            // EF InMemory has no transaction support. Unsaved tracked changes disappear with
+            // the failed request scope, which is sufficient for local Debug workflows.
+            await action(ct);
+            await _db.SaveChangesAsync(ct);
+            return;
+        }
+
         var strategy = _db.Database.CreateExecutionStrategy();
         await strategy.ExecuteAsync(async () =>
         {
@@ -35,4 +44,8 @@ public class UnitOfWork : IUnitOfWork
             }
         });
     }
+
+    private bool IsInMemory()
+        => string.Equals(_db.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory",
+            StringComparison.Ordinal);
 }

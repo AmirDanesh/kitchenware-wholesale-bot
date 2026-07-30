@@ -107,6 +107,16 @@ public class InventoryRepository : IInventoryRepository
 
     private async Task<List<InventoryItem>> LoadTrackedForProductWithUpdateLockAsync(Guid productId, CancellationToken ct)
     {
+        if (string.Equals(_db.Database.ProviderName, "Microsoft.EntityFrameworkCore.InMemory",
+                StringComparison.Ordinal))
+        {
+            return await _db.InventoryItems
+                .Include(i => i.Product)
+                .Include(i => i.Warehouse)
+                .Where(i => i.ProductId == productId)
+                .ToListAsync(ct);
+        }
+
         if (_db.Database.CurrentTransaction is null)
             throw new InvalidOperationException("Inventory mutations require an explicit database transaction.");
 

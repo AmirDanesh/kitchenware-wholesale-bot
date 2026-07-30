@@ -9,8 +9,13 @@ Do NOT introduce MediatR. If you need to decouple something, use an interface.
 
 ### SQL Server over PostgreSQL
 The developer is a .NET specialist. SQL Server integrates natively with Visual Studio,
-supports LocalDB for zero-config dev, and SQL Server Express is free for production
+supports LocalDB for relational testing, and SQL Server Express is free for production
 at this scale. No Npgsql knowledge required.
+
+Debug builds use EF Core InMemory for fast local development and reset data whenever
+the process stops. Release builds and EF design-time tools continue to use SQL Server.
+InMemory does not reproduce SQL locking, transaction, or raw-SQL behavior; validate
+database-sensitive changes against SQL Server before release.
 
 ### No Domain Events Library
 Domain events (like `OrderPlaced`) are handled by direct service calls for now.
@@ -22,9 +27,11 @@ This is intentional — keep it simple until the system grows.
 - The app switches automatically: if `Telegram:WebhookUrl` is empty → polling mode (dev)
 - If `Telegram:WebhookUrl` is set → webhook mode (production)
 
-### Redis for Bot State (FSM)
+### Bot State (FSM)
 Each user's conversation state (which step of the flow they're in, their cart contents,
-admin product draft in progress) is stored in Redis as a JSON-serialized `UserSession`.
+admin product draft in progress) is stored as a JSON-serialized `UserSession`.
+- Debug: process-local `IMemoryCache`; no Redis dependency; resets on restart
+- Release: Redis for shared, durable-across-restart process state
 - Key: `bot:session:{telegramId}`
 - TTL: 30 minutes (session expires if user is idle)
 - Why not DB: session data is ephemeral, high-frequency read/write, not business data

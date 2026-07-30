@@ -1,6 +1,6 @@
 namespace KitchenwareBot.Application.Sessions;
 
-/// <summary>Stores/loads <see cref="UserSession"/> FSM state (Redis-backed in Infrastructure).</summary>
+/// <summary>Stores and loads <see cref="UserSession"/> FSM state.</summary>
 public interface IBotStateService
 {
     Task<UserSession> GetOrCreateAsync(long telegramId, CancellationToken ct = default);

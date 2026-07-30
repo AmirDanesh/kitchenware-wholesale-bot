@@ -13,7 +13,7 @@ public class AppDbContextFactory : IDesignTimeDbContextFactory<AppDbContext>
     public AppDbContext CreateDbContext(string[] args)
     {
         var connection = Environment.GetEnvironmentVariable("ConnectionStrings__Default")
-            ?? "Server=(localdb)\\mssqllocaldb;Database=KitchenwareBot;Trusted_Connection=True;TrustServerCertificate=True";
+            ?? "Server=localhost,1433;Database=KitchenwareBot;User Id=sa;Password=<SA_PASSWORD>;Encrypt=True;TrustServerCertificate=True";
 
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseSqlServer(connection)
