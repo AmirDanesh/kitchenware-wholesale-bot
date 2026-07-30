@@ -17,7 +17,7 @@ publish/
 # Secrets & local config — NEVER commit
 .env
 docker-compose.override.yml
-appsettings.*.Local.json
+appsettings.*
 **/wwwroot/uploads/
 
 # Logs
